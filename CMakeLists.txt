@@ -63,6 +63,7 @@ option(USE_OMP "Build Cytnx with OpenMP" ON)
 option(BUILD_DOC "Build API docuemntation" OFF)
 option(USE_HPTT "Build Cytnx with HPTT" OFF)
 
+
 if (USE_ICPC)
   message(STATUS, "Build Cytnx with Intel Compilers")
   message(STATUS, "Finding Intel Compilers....")
@@ -131,7 +132,7 @@ endif()
 ######################################################################
 project(CYTNX VERSION ${CYTNX_VERSION} LANGUAGES CXX C )
 set(CMAKE_CXX_STANDARD 11)
-
+include(GNUInstallDirs)
 add_library(cytnx STATIC)
 set_property(TARGET cytnx PROPERTY C_VISIBILITY_PRESET hidden)
 set_property(TARGET cytnx PROPERTY VISIBILITY_INLINES_HIDDEN ON)
@@ -307,9 +308,27 @@ if(USE_CUDA)
   target_link_libraries(cytnx PRIVATE -lcublas -lcurand)
 endif()
 
+######################################################################
+### GTEST
+######################################################################
+if(cmake_build_type_tolower STREQUAL "debug")
+    include(FetchContent)
 
+    FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG        release-1.11.0
+    )
 
+    FetchContent_GetProperties(googletest)
+    if(NOT googletest_POPULATED)
+        FetchContent_Populate(googletest)
+        add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
+    endif()
 
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 ######################################################################
 ### Build Documents
 ######################################################################
