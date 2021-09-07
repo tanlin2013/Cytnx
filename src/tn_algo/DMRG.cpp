@@ -3,9 +3,9 @@
 #include "Network.hpp"
 #include "LinOp.hpp"
 #include "linalg.hpp"
-#include <tuple>
 #include <iomanip>
 #include <iostream>
+#include <utility>
 #include "utils/vec_print.hpp"
 using namespace std;
 
@@ -23,7 +23,7 @@ namespace cytnx{
                 std::vector<UniTensor> ortho_mps;
                 double weight;
                 int counter;                
-                Hxx_new(std::vector<UniTensor> functArgs, const std::vector<UniTensor> &ortho_mps, const double &weight, const cytnx_int64 &dtype, const cytnx_int64 &device):
+                Hxx_new(std::vector<UniTensor> functArgs, const std::vector<UniTensor> &ortho_mps, const double &weight, const int &dtype, const int &device):
                     LinOp("mv",0 /*doesn't matter for UniTensor as ipt*/,dtype,device)
                     {
                         UniTensor &L  = functArgs[0];
@@ -49,15 +49,15 @@ namespace cytnx{
                     }
 
                 UniTensor matvec(const UniTensor& v) override{
-                    auto lbls = v.labels();
+                    const auto& lbls = v.labels();
 
                     this->anet.PutUniTensor("psi",v);
                     UniTensor out = this->anet.Launch(true); // get_block_ without copy
 
                     //shifted ortho state:
-                    for(cytnx_int64 ir=0; ir< this->ortho_mps.size();ir++){
+                    for(auto & ortho_mp : this->ortho_mps){
                         
-                        auto r = this->ortho_mps[ir].relabels(v.labels());
+                        auto r = ortho_mp.relabels(v.labels());
                         Scalar c = Contract(r.Dagger(),v).item();
                         out += this->weight*c*r;
                     }
@@ -78,7 +78,7 @@ namespace cytnx{
                 double weight;
                 int counter;
                 
-                Hxx(const cytnx_uint64 &psidim, std::vector<UniTensor> functArgs, const std::vector<Tensor> &ortho_mps, const double &weight,const cytnx_int64 &dtype, const cytnx_int64 &device):
+                Hxx(const cytnx_uint64 &psidim, std::vector<UniTensor> functArgs, const std::vector<Tensor> &ortho_mps, const double &weight,const int &dtype, const int &device):
                     LinOp("mv",psidim,dtype,device)
                     {
                         UniTensor &L  = functArgs[0];
@@ -115,8 +115,7 @@ namespace cytnx{
 
                     //shifted ortho state:
 
-                    for(cytnx_int64 ir=0; ir< this->ortho_mps.size();ir++){
-                        auto r = this->ortho_mps[ir];
+                    for(const auto& r : this->ortho_mps){
                         auto c = linalg::Dot(r,v).item();
                         out += this->weight*c*r;
                     }
@@ -128,20 +127,20 @@ namespace cytnx{
 
         };
 
-        std::vector<Tensor> optimize_psi(Tensor psivec, std::vector<UniTensor> functArgs, const cytnx_uint64 &maxit=4000, const cytnx_uint64 &krydim=4, std::vector<Tensor> ortho_mps = {}, const double &weight=30){
+        std::vector<Tensor> optimize_psi(const Tensor& psivec, std::vector<UniTensor> functArgs, const cytnx_uint64 &maxit=4000, const cytnx_uint64 &krydim=4, const std::vector<Tensor>& ortho_mps = {}, const double &weight=30){
 
             
-            auto H = Hxx(psivec.shape()[0],functArgs,ortho_mps,weight,psivec.dtype(),psivec.device());
+            auto H = Hxx(psivec.shape()[0],std::move(functArgs),ortho_mps,weight,psivec.dtype(),psivec.device());
 
             auto out = linalg::Lanczos_Gnd(&H,1.0e-12,true,psivec,false, maxit);
             return out;
 
         }
 
-        std::vector<UniTensor> optimize_psi_new(UniTensor psivec, std::vector<UniTensor> functArgs, const cytnx_uint64 &maxit=4000, const cytnx_uint64 &krydim=4, std::vector<UniTensor> ortho_mps = {}, const double &weight=30){
+        std::vector<UniTensor> optimize_psi_new(const UniTensor& psivec, std::vector<UniTensor> functArgs, const cytnx_uint64 &maxit=4000, const cytnx_uint64 &krydim=4, std::vector<UniTensor> ortho_mps = {}, const double &weight=30){
 
             
-            auto H = Hxx_new(functArgs,ortho_mps,weight,psivec.dtype(),psivec.device());
+            auto H = Hxx_new(std::move(functArgs),ortho_mps,weight,psivec.dtype(),psivec.device());
 
             auto out = linalg::Lanczos_Gnd_Ut(&H,psivec,1.0e-12,true,false, maxit);
 

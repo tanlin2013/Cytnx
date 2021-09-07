@@ -67,8 +67,8 @@ namespace cytnx{
             }
             */
             //clone&assignment constr., use intrusive_ptr's
-            Tensor_impl(const Tensor_impl &rhs);
-            Tensor_impl& operator=(const Tensor_impl &rhs); // add const
+            Tensor_impl(const Tensor_impl &rhs)=delete;
+            Tensor_impl& operator=(const Tensor_impl &rhs)=delete; // add const
             
             unsigned int dtype() const{
                 return this->_storage.dtype();
@@ -143,7 +143,7 @@ namespace cytnx{
                 RealRank=0;
                 mtplyr = 1;
 
-                for(cytnx_int64 i=this->_shape.size()-1; i>=0; i--){
+                for(auto i=this->_shape.size()-1; i>=0; i--){
                     if(locator[i]>=this->_shape[i]){
                         cytnx_error_msg(true, "%s", "Attempting to access out-of-bound index in Tensor.");
                     }
@@ -155,7 +155,7 @@ namespace cytnx{
                 return this->_storage.at<T>(RealRank);
             }
 
-            const Scalar::Sproxy at(const std::vector<cytnx_uint64> &locator) const{
+            Scalar::Sproxy at(const std::vector<cytnx_uint64> &locator) const{
                 cytnx_error_msg(locator.size() != this->_shape.size(), "%s", "The input index does not match Tensor's rank.");
 
                 cytnx_uint64 RealRank,mtplyr;
@@ -165,7 +165,7 @@ namespace cytnx{
                 RealRank=0;
                 mtplyr = 1;
 
-                for(cytnx_int64 i=this->_shape.size()-1; i>=0; i--){
+                for(auto i=this->_shape.size()-1; i>=0; i--){
                     if(locator[i]>=this->_shape[i]){
                         cytnx_error_msg(true, "%s", "Attempting to access out-of-bound index in Tensor.");
                     }
@@ -187,7 +187,7 @@ namespace cytnx{
                 RealRank=0;
                 mtplyr = 1;
 
-                for(cytnx_int64 i=this->_shape.size()-1; i>=0; i--){
+                for(auto i=this->_shape.size()-1; i>=0; i--){
                     if(locator[i]>=this->_shape[i]){
                         cytnx_error_msg(true, "%s", "Attempting to access out-of-bound index in Tensor.");
                     }
@@ -276,8 +276,8 @@ namespace cytnx{
 
                             
                 if(has_undetermine){
-                    cytnx_error_msg(new_N > this->_storage.size(),"%s","[ERROR] new shape exceed the total number of elements.");
-                    cytnx_error_msg(this->_storage.size()%new_N,"%s","[ERROR] unmatch size when reshape with undetermine dimension");
+                    cytnx_error_msg(new_N > this->_storage.size(),"%s","[ERROR] new shape exceeds the total number of elements.");
+                    cytnx_error_msg(this->_storage.size()%new_N,"%s","[ERROR] unmatched size when reshaping with undetermined dimension");
                     result_shape[Udet_id] = this->_storage.size()/new_N;
                 }else{
                     cytnx_error_msg(new_N != this->_storage.size(),"%s","[ERROR] new shape does not match the number of elements.");
