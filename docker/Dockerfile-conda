@@ -1,0 +1,5 @@
+FROM conda/miniconda3-centos7
+
+RUN conda install -c kaihsinwu cytnx
+
+ENTRYPOINT /bin/bash
